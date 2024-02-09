@@ -1,4 +1,4 @@
-# **MSc-Thesis:** On the simulation of GIT-Templates for BSc-Theses
+# **BSc-Thesis:** On the simulation of GIT-Templates for BSc-Theses
 **Author:** *Benedikt Ehinger*
 
 **Supervisor(s):** *Supervisor 1*, *Supervisor 2*
