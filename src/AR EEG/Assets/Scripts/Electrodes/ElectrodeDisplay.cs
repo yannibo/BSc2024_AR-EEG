@@ -26,16 +26,20 @@ public class ElectrodeDisplay : MonoBehaviour, LSLStreamReceiver {
         originalPosition = transform.position;
 
         // Listen to the streamReady Event of the LSLStreamManager
-        LSLStreamManager.instance.streamReady += this.LSLStreamReady;
+        //LSLStreamManager.instance.streamReady += this.LSLStreamReady;
+        //LSLStreamManagerNewClient.instance.streamReady += this.LSLStreamReady;
+        LSLStreamReady();
     }
 
     /**
      * When a stream is selected and data of that stream is being received,
      * register this as a receiver with the specified channel name
      */
-    private void LSLStreamReady(LSL.StreamInfo obj) {
+    //private void LSLStreamReady(LSL.StreamInfo obj) {
+    private void LSLStreamReady() {
         Debug.Log("Stream Ready -> Registering Electrode " + channelName);
-        LSLStreamManager.instance.RegisterChannelReceiver(channelName, this);
+        //LSLStreamManager.instance.RegisterChannelReceiver(channelName, this);
+        LSLStreamManagerNewClient.instance.RegisterChannelReceiver(channelName, this);
     }
 
     /**

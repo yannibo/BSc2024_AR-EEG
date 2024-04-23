@@ -39,17 +39,24 @@ public class LSLStreamInfoDisplay : MonoBehaviour {
     void Update()
     {
         // Set the respective values from streamInfo to the Text Objects
-        if (LSLStreamManager.instance != null) {
+        /*if (LSLStreamManager.instance != null) {
             streamNameText.SetText(LSLStreamManager.instance.streamInfo.name());
             streamHostnameText.SetText(LSLStreamManager.instance.streamInfo.hostname());
             streamTypeText.SetText(LSLStreamManager.instance.streamInfo.type());
             streamChannelInfoText.SetText(LSLStreamManager.instance.streamInfo.channel_count() + " Channels");
             streamManufacturerText.SetText(LSLStreamManager.instance.streamInfo.desc().child("acquisition").child_value("manufacturer"));
             streamSamplesPerSecondText.SetText(Math.Round(LSLStreamManager.instance.samplesPerSecond, 1).ToString() + " Samples/s");
-        }
+        }*/
+
+        streamNameText.SetText("Holo LSL Bridge");
+        streamHostnameText.SetText("-");
+        streamTypeText.SetText("EEG");
+        streamChannelInfoText.SetText("Unknown Channels");
+        streamManufacturerText.SetText("-");
+        streamSamplesPerSecondText.SetText(Math.Round(LSLStreamManagerNewClient.instance.samplesPerSecond, 1).ToString() + " Samples/s");
     }
 
     public void OnStreamCloseClicked() {
-        LSLStreamManager.instance.DeselectStream();
+        //LSLStreamManager.instance.DeselectStream();
     }
 }

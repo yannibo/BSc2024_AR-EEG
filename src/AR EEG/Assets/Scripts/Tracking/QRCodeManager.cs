@@ -61,7 +61,7 @@ public class QRCodeManager : MonoBehaviour {
      * Disable the QRCodeWatcher if this gameobject gets destroyed
      */
     private void OnDestroy() {
-        qRCodeWatcher.Stop();
+        if (qRCodeWatcher != null) qRCodeWatcher.Stop();
         qrDictionary.Clear();
     }
 

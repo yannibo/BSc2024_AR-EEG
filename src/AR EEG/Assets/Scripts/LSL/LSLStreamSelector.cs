@@ -29,7 +29,7 @@ public class LSLStreamSelector : MonoBehaviour {
     void Start()
     {
         // Listen to the events of the LSL Stream Manager about discovered streams
-        LSLStreamManager.instance.streamListUpdated += this.StreamListUpdated;
+        //LSLStreamManager.instance.streamListUpdated += this.StreamListUpdated;
     }
 
     /**
@@ -37,7 +37,11 @@ public class LSLStreamSelector : MonoBehaviour {
      */
     void Update() {
 
-        if (LSLStreamManager.instance != null) {
+
+        list.SetActive(false);
+        infoDisplay.gameObject.SetActive(true);
+
+        /*if (LSLStreamManager.instance != null) {
             if (LSLStreamManager.instance.streamStarted) {
                 list.SetActive(false);
                 infoDisplay.gameObject.SetActive(true);
@@ -74,7 +78,7 @@ public class LSLStreamSelector : MonoBehaviour {
                 Destroy(items[item].gameObject);
                 items.Remove(item);
             }
-        }
+        }*/
     }
 
     private void OnDisable() {

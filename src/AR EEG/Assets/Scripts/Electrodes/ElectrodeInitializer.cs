@@ -37,13 +37,14 @@ public class ElectrodeInitializer : MonoBehaviour {
         int i = 0;
         foreach (var pos in electrodePositions) {
             // Instantiate a new Instance of the prefab for each electrode
-            GameObject obj = Instantiate(electrodePrefab, transform, false);
+            GameObject obj = Instantiate(electrodePrefab, headCenter, false);
 
-            obj.transform.localPosition = transform.localPosition;
+            obj.transform.position = headCenter.position;
 
             // Apply a standard scale and the position of the electrode
             obj.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             obj.transform.localPosition += new Vector3((float)(-pos.y * 1.5), (float)(pos.z * 1.5), (float)(pos.x * 1.5));
+            
             //obj.transform.localPosition += new Vector3((float)(-pos.y * 1.2), (float)(pos.z * 1.2), (float)(pos.x * 1.2));
             //obj.transform.position += new Vector3((float)pos.y, (float)pos.z, (float)pos.x);
 
@@ -61,10 +62,8 @@ public class ElectrodeInitializer : MonoBehaviour {
             if (didHit) {
                 // If the raycast hit the mesh, apply the position of the hitpoint to the electrode
                 Debug.DrawLine(obj.transform.position, hit.point, Color.red, 100);
-                //obj.transform.rotation = Quaternion.FromToRotation(obj.transform.up, hit.normal);
                 obj.transform.rotation = Quaternion.FromToRotation(obj.transform.up, obj.transform.position - center);
                 obj.transform.position = hit.point;
-                //Debug.Log("Hit Point: " + pos.name);
             }
 
             // Initialize the Electrode Script on the electrode GameObject
@@ -84,6 +83,8 @@ public class ElectrodeInitializer : MonoBehaviour {
                 float electrodeDistance = Vector3.Distance(viewerCamera.transform.position, electrodes[i].transform.position);
                 electrodes[i].gameObject.SetActive(electrodeDistance <= centerDistance);
             }
+        } else {
+            viewerCamera = Camera.main;
         }
     }
 

@@ -33,7 +33,7 @@ public class QRCodeTracker : MonoBehaviour {
         originPositionOffset = qrOrigin.localPosition;
         originRotationOffset = qrOrigin.rotation;
 
-        Debug.Log(originPositionOffset);
+        //Debug.Log(originPositionOffset);
     }
 
     void Update() {
@@ -60,9 +60,9 @@ public class QRCodeTracker : MonoBehaviour {
                 transform.position += posDiff;
 
 
-                Debug.Log(originPositionOffset);
+                /*Debug.Log(originPositionOffset);
                 Debug.Log(pose.position);
-                Debug.Log(transform.TransformPoint(originPositionOffset));
+                Debug.Log(transform.TransformPoint(originPositionOffset));*/
             }
         }
     }
@@ -76,7 +76,7 @@ public class QRCodeTracker : MonoBehaviour {
 
         // Acquire the SpatialGraphNode for the given QRCode
         node = SpatialGraphNode.FromStaticNodeId(code.SpatialGraphNodeId);
-        Debug.Log(node);
+        //Debug.Log(node);
 
         // Adjust childtransform to the Size of the QRCode
         Vector3 child = childPosition.position;
