@@ -28,8 +28,32 @@ public class ElectrodeInitializer : MonoBehaviour {
     // A reference to the Object Manipulator to be able to disable it
     private ObjectManipulator objectManipulator;
 
+    // A reference to the Transform that handles the manual alignment offset
+    [SerializeField]
+    private Transform manualAlignmentTransform;
+
+    /**
+     * Start Offsets of Hand Alignment
+     */
+    private Vector3 initialPositionOffset;
+    private Quaternion initialRotationOffset;
+    private Vector3 initialScaleOffset;
+
+    /**
+     * Manual Alignment Offsets
+     */
+    Vector3 manualPositionOffset = new Vector3(0, 0, 0);
+    Vector3 manualRotationOffset = new Vector3(0, 0, 0);
+    Vector3 manualScaleOffset = new Vector3(1, 1, 1);
+
     void Start() {
+        // Find the Object Manipulator Component
         objectManipulator = GetComponent<ObjectManipulator>();
+
+        // Save initial Offsets
+        initialPositionOffset = transform.localPosition;
+        initialRotationOffset = transform.localRotation;
+        initialScaleOffset = transform.localScale;
 
         // Initialize Electrode Array
         electrodes = new GameObject[electrodePositions.Length];
@@ -77,6 +101,7 @@ public class ElectrodeInitializer : MonoBehaviour {
     }
 
     private void Update() {
+        // Hide Electrodes behind the head to limit confusion
         if (viewerCamera != null) {
             float centerDistance = Vector3.Distance(viewerCamera.transform.position, headCenter.position);
             for (int i = 0; i < electrodes.Length; i++) {
@@ -86,6 +111,11 @@ public class ElectrodeInitializer : MonoBehaviour {
         } else {
             viewerCamera = Camera.main;
         }
+
+        // Apply the manual offset
+        manualAlignmentTransform.localPosition = manualPositionOffset;
+        manualAlignmentTransform.localRotation = Quaternion.Euler(manualRotationOffset);
+        manualAlignmentTransform.localScale = manualScaleOffset;
     }
 
     /**
@@ -107,6 +137,21 @@ public class ElectrodeInitializer : MonoBehaviour {
     */
     public void SetCamera(Camera camera) {
         viewerCamera = camera;
+    }
+
+    /**
+     * Applies the Manual Alignment offset to the respective transform
+     */
+    public void SetManualOffset(Vector3 position, Vector3 rotation, Vector3 scale) {
+        manualPositionOffset = position;
+        manualRotationOffset = rotation;
+        manualScaleOffset = scale;
+    }
+
+    public void ResetHandAlignment() {
+        transform.localPosition = initialPositionOffset;
+        transform.localRotation = initialRotationOffset;
+        transform.localScale = initialScaleOffset;
     }
 
     // The Layout of the EEG Cap with Electrodes and their positions

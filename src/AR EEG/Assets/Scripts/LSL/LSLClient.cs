@@ -38,7 +38,7 @@ public class LSLClient : MonoBehaviour {
         public byte[] Payload;
     }
 
-    [SerializeField] private string _hostName;
+    [SerializeField] public string _hostName;
     [SerializeField] private string _port;
 
     // List of input channels from which we want to receive data
@@ -78,7 +78,7 @@ public class LSLClient : MonoBehaviour {
     const int BYTE_SIZE_FLOAT = 4;
     const int BYTE_SIZE_DOUBLE = 8;
 
-    private bool _noConnection;
+    public bool _noConnection = true;
 
     readonly Package EMPTY_PKG = new Package { ChannelName = "", PkgType = 0x07, Timestamp = -1, Payload = new byte[0] };
 
@@ -428,6 +428,10 @@ public class LSLClient : MonoBehaviour {
         while (!_noConnection) {
             StoreInput();
         }
+
+        Debug.Log("Lost Connection to Stream. Reconnecting...");
+        StopStream();
+        Awake();
     }
 
     private void StoreInput() {
@@ -485,7 +489,7 @@ public class LSLClient : MonoBehaviour {
         _listeningTask = null;
     }
 
-    private void StopStream() {
+    public void StopStream() {
         if (_noConnection)
             return;
 

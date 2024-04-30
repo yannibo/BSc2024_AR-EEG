@@ -37,7 +37,7 @@ public class ElectrodeDisplay : MonoBehaviour, LSLStreamReceiver {
      */
     //private void LSLStreamReady(LSL.StreamInfo obj) {
     private void LSLStreamReady() {
-        Debug.Log("Stream Ready -> Registering Electrode " + channelName);
+        //Debug.Log("Stream Ready -> Registering Electrode " + channelName);
         //LSLStreamManager.instance.RegisterChannelReceiver(channelName, this);
         LSLStreamManagerNewClient.instance.RegisterChannelReceiver(channelName, this);
     }
@@ -46,7 +46,7 @@ public class ElectrodeDisplay : MonoBehaviour, LSLStreamReceiver {
      * Color the specified mesh based on the received data
      */
     public void updateData(float data) {
-        Debug.Log("Channel " + channelName + ": " + data);
+        //Debug.Log("Channel " + channelName + ": " + data);
         m_Renderer.material.color = valueToColor(data);
     }
 

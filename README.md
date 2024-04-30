@@ -3,10 +3,13 @@
 
 **Supervisor(s):** *Supervisor 1*, *Supervisor 2*
 
-**Year:** *2022*
+**Year:** *2024*
 
 ## Project Description
->provide a short description of the main goals - just copy from the proposal
+This project is an application for the Hololens 2 that can be used to visualize data from an EEG cap in the operator’s view. It aims at helping the operator prepare an EEG cap on a patient’s head to achieve high-quality measurements.
+
+The major goal is to implement a tool for the Microsoft HoloLens, which receives the measured impedance values of the electrodes and visualizes them for the operator preparing the cap.
+
 
 ## Zotero Library Path
 >Please provide the link to the Zotero group here or include a `Bib`-File in the `report` folder
@@ -18,7 +21,7 @@
 >
 >Optional: Add a pipeline plot in which the different steps are displayed together with the corresponding scripts.
 
-## Overview of Folder Structure 
+## Overview of Folder Structure
 
 ```
 │projectdir          <- Project's main folder. It is initialized as a Git
@@ -58,7 +61,7 @@
 ├── (Manifest.toml)  <- Contains full list of exact package versions used currently.
 |── (Project.toml)   <- Main project file, allows activation and installation.
 └── (Requirements.txt)<- in case of python project - can also be an anaconda file, MakeFile etc.
-                        
+
 ```
 
 \*Instead of having a separate *notebooks* folder, you can also delete it and integrate your notebooks in the scripts folder. However, notebooks should always be marked by adding `nb_` in front of the file name.

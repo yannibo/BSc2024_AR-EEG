@@ -29,16 +29,70 @@ public class LSLStreamManagerNewClient : MonoBehaviour {
 
     // A Map storing the indices of channels in the raw data by a channel name
     private Dictionary<string, int> channelIndexMap = new Dictionary<string, int>() {
-        { "AF4", 0 },
-        { "AF8", 1 },
-        { "AFD6h", 2 },
-        { "FFC6h", 3 },
-        { "F4", 4 },
-        { "P3", 5 },
-        { "P4", 6 },
-        { "Pz", 7 },
-        { "O1", 8 },
-        { "O2", 9 },
+        { "FP1", 0 },
+        { "FPZ", 1 },
+        { "FP2", 2 },
+        { "F7", 3 },
+        { "F3", 4 },
+        { "FZ", 5 },
+        { "F4", 6 },
+        { "F8", 7 },
+        { "FC5", 8 },
+        { "FC1", 9 },
+        { "FC2", 10 },
+        { "FC6", 11 },
+        { "M1", 12 },
+        { "T7", 13 },
+        { "C3", 14 },
+        { "CZ", 15 },
+        { "C4", 16 },
+        { "T8", 17 },
+        { "M2", 18 },
+        { "CP5", 19 },
+        { "CP1", 20 },
+        { "CP2", 21 },
+        { "CP6", 22 },
+        { "P7", 23 },
+        { "P3", 24 },
+        { "PZ", 25 },
+        { "P4", 26 },
+        { "P8", 27 },
+        { "POZ", 28 },
+        { "O1", 29 },
+        { "O2", 30 },
+        { "HEOGR", 31 },
+        { "AF7", 32 },
+        { "AF3", 33 },
+        { "AF4", 34 },
+        { "AF8", 35 },
+        { "F5", 36 },
+        { "F1", 37 },
+        { "F2", 38 },
+        { "F6", 39 },
+        { "FC3", 40 },
+        { "FCZ", 41 },
+        { "FC4", 42 },
+        { "C5", 43 },
+        { "C1", 44 },
+        { "C2", 45 },
+        { "C6", 46 },
+        { "CP3", 47 },
+        { "CP4", 48 },
+        { "P5", 49 },
+        { "P1", 50 },
+        { "P2", 51 },
+        { "P6", 52 },
+        { "HEOGL", 53 },
+        { "PO3", 54 },
+        { "PO4", 55 },
+        { "VEOGU", 56 },
+        { "FT7", 57 },
+        { "FT8", 58 },
+        { "TP7", 59 },
+        { "TP8", 60 },
+        { "PO7", 61 },
+        { "PO8", 62 },
+        { "VEOGL", 63 },
     };
 
     // A Map containing all registered Instances, which want to receive data from LSL
@@ -74,19 +128,21 @@ public class LSLStreamManagerNewClient : MonoBehaviour {
      * and updates the channel data if a stream has been selected.
      */
     void Update() {
-        if (client != null) {
+        if (client != null && !client._noConnection) {
             LSLClient.Package pkg = client.ReadChannel("EEG");
 
             if (pkg.Payload.Length > 0 && pkg.PkgType == LSLClient.FLOAT_TYPE && pkg.ChannelName.Equals("EEG")) {
                 samplesPerSecond = 1 / Time.deltaTime;
 
                 float[] values = LSLClient.UnpackFloat(pkg);
-                Debug.Log("Received " + values.Length + " values");
-                Debug.Log(values);
+                //Debug.Log("Received " + values.Length + " values");
+                //Debug.Log(values);
 
                 foreach (var receiverChannel in receivers.Keys) {
-                    if (channelIndexMap.ContainsKey(receiverChannel)) {
-                        int index = channelIndexMap[receiverChannel];
+                    string uppercaseChannelName = receiverChannel.ToUpperInvariant();
+
+                    if (channelIndexMap.ContainsKey(uppercaseChannelName)) {
+                        int index = channelIndexMap[uppercaseChannelName];
 
                         if (index != -1 && index < values.Length) {
                             foreach (var receiver in receivers[receiverChannel]) {
@@ -111,7 +167,7 @@ public class LSLStreamManagerNewClient : MonoBehaviour {
         }
 
         receivers[label].Add(receiver);
-        Debug.Log("Successfully registered Channel " + label);
+        //Debug.Log("Successfully registered Channel " + label);
     }
 
     // Unregister a receiver

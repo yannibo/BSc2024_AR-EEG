@@ -1,4 +1,5 @@
 using LSL;
+using MixedReality.Toolkit.UX;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,38 +10,52 @@ using UnityEngine;
 public class LSLStreamSelector : MonoBehaviour {
 
     // The prefab of a list item of a stream
-    [SerializeField]
-    private GameObject itemPrefab;
+    /*[SerializeField]
+    private GameObject itemPrefab;*/
 
     // The List UI Element
     [SerializeField]
     private GameObject list;
 
+    // The IP Input Textfield
+    [SerializeField]
+    private MRTKTMPInputField ipInput;
+
+    // A reference to the connect button
+    [SerializeField]
+    private PressableButton connectButton;
+
+    // A reference to the disconnect button
+    [SerializeField]
+    private PressableButton disconnectButton;
+
     // The UI Element for displaying the selected stream info
     [SerializeField]
     private LSLStreamInfoDisplay infoDisplay;
 
+    // A reference to the LSL Client Script
+    [SerializeField]
+    private LSLClient lslClient;
+
     // A map containing all ui list items for each stream
-    private Dictionary<string, LSLStreamItem> items = new Dictionary<string, LSLStreamItem>();
+    //private Dictionary<string, LSLStreamItem> items = new Dictionary<string, LSLStreamItem>();
 
     // a list of all discovered streams
-    private StreamInfo[] streams = new StreamInfo[0];
-    
+    //private StreamInfo[] streams = new StreamInfo[0];
+
     void Start()
     {
         // Listen to the events of the LSL Stream Manager about discovered streams
         //LSLStreamManager.instance.streamListUpdated += this.StreamListUpdated;
+
+        connectButton.OnClicked.AddListener(onConnectClick);
+        disconnectButton.OnClicked.AddListener(onDisconnectClick);
     }
 
     /**
      * Update method handling the updates of streams and the ui
      */
     void Update() {
-
-
-        list.SetActive(false);
-        infoDisplay.gameObject.SetActive(true);
-
         /*if (LSLStreamManager.instance != null) {
             if (LSLStreamManager.instance.streamStarted) {
                 list.SetActive(false);
@@ -81,7 +96,35 @@ public class LSLStreamSelector : MonoBehaviour {
         }*/
     }
 
-    private void OnDisable() {
+    /**
+     * Handler for button press of the connect button.
+     * Sets Hostname of the LSL CLient and starts it
+     */
+    void onConnectClick() {
+        string ipAddress = ipInput.text;
+
+        Debug.Log("Connecting to: " + ipAddress);
+
+        lslClient._hostName = ipAddress;
+        lslClient.enabled = true;
+
+        list.SetActive(false);
+        infoDisplay.gameObject.SetActive(true);
+    }
+
+    /**
+     * Handler for button press of the connect button.
+     * Sets Hostname of the LSL CLient and starts it
+     */
+    void onDisconnectClick() {
+        lslClient.StopStream();
+        lslClient.enabled = false;
+
+        list.SetActive(true);
+        infoDisplay.gameObject.SetActive(false);
+    }
+
+    /*private void OnDisable() {
         foreach (var item in items) {
             Destroy(item.Value.gameObject);
         }
@@ -89,10 +132,10 @@ public class LSLStreamSelector : MonoBehaviour {
         streams = new StreamInfo[0];
 
         items = new Dictionary<string, LSLStreamItem>();
-    }
+    }*/
 
     // Listener for streamListUpdated Event
-    private void StreamListUpdated(StreamInfo[] obj) {
+    /*private void StreamListUpdated(StreamInfo[] obj) {
         streams = obj;
-    }
+    }*/
 }
