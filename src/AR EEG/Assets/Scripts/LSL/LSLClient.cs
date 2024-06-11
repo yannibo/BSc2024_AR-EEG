@@ -111,6 +111,8 @@ public class LSLClient : MonoBehaviour {
             _streamIn = _socket.InputStream.AsStreamForRead();
             _noConnection = false;
             StartListening();
+#else
+            Debug.LogError("Not UWP");
 #endif
         } catch (Exception) {
             Debug.LogError("Connection Failed!");

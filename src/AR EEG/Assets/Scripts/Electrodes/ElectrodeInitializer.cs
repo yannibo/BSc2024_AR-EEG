@@ -87,7 +87,23 @@ public class ElectrodeInitializer : MonoBehaviour {
                 // If the raycast hit the mesh, apply the position of the hitpoint to the electrode
                 Debug.DrawLine(obj.transform.position, hit.point, Color.red, 100);
                 obj.transform.rotation = Quaternion.FromToRotation(obj.transform.up, obj.transform.position - center);
-                obj.transform.position = hit.point;
+
+                Vector3 posDiff = hit.point - obj.transform.position;
+                float distance = posDiff.magnitude;
+                posDiff.Normalize();
+                posDiff = posDiff * (distance * 0.9f);
+
+                obj.transform.position += posDiff;
+                //obj.transform.position = hit.point;
+
+
+
+                /*Vector3 normal = new Vector3(
+        MapFloat(hit.normal.x, -1, 1, 180, 0),
+        MapFloat(hit.normal.y, -1, 1, 180, 0),
+        MapFloat(hit.normal.z, -1, 1, 180, 0)
+    );*/
+                //obj.transform.localRotation = Quaternion.FromToRotation(obj.transform.up, hit.point - center);
             }
 
             // Initialize the Electrode Script on the electrode GameObject
@@ -98,6 +114,11 @@ public class ElectrodeInitializer : MonoBehaviour {
         }
 
         SetHeadMeshVisible(false);
+    }
+
+    private float MapFloat(float value, float fromMin, float fromMax, float toMin, float toMax) {
+        float percent = (value - fromMin) / (fromMax - fromMin);
+        return (percent * (toMax - toMin)) + toMin;
     }
 
     private void Update() {
@@ -115,7 +136,40 @@ public class ElectrodeInitializer : MonoBehaviour {
         // Apply the manual offset
         manualAlignmentTransform.localPosition = manualPositionOffset;
         manualAlignmentTransform.localRotation = Quaternion.Euler(manualRotationOffset);
-        manualAlignmentTransform.localScale = manualScaleOffset;
+        //manualAlignmentTransform.localScale = manualScaleOffset;
+
+        //manualAlignmentTransform.Rotate(manualRotationOffset, Space.Self);
+        //ScaleAround(manualAlignmentTransform.gameObject, headCenter.position, manualScaleOffset);
+        ScaleAround(manualAlignmentTransform, headCenter, manualScaleOffset);
+    }
+
+    /**
+     * Scale Around Point Method
+     * https://discussions.unity.com/t/scaling-an-object-from-a-different-center/2508
+     */
+    /*public void ScaleAround(GameObject target, Vector3 pivot, Vector3 newScale) {
+        Vector3 A = target.transform.localPosition;
+        Vector3 B = pivot;
+
+        Vector3 C = A - B; // diff from object pivot to desired pivot/origin
+
+        float RS = newScale.x / target.transform.localScale.x; // relataive scale factor
+
+        // calc final position post-scale
+        Vector3 FP = B + C * RS;
+
+        // finally, actually perform the scale/translation
+        target.transform.localScale = newScale;
+        target.transform.localPosition = FP;
+    }*/
+
+    public void ScaleAround(Transform target, Transform pivot, Vector3 scale) {
+        Transform pivotParent = pivot.parent;
+        Vector3 pivotPos = pivot.position;
+        pivot.parent = target;
+        target.localScale = scale;
+        target.position += pivotPos - pivot.position;
+        pivot.parent = pivotParent;
     }
 
     /**
