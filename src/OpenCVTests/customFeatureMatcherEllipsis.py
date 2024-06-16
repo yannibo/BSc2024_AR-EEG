@@ -218,15 +218,27 @@ cv2.createTrackbar('levensteinThreshold:', source_window, int(levensteinThreshol
 
 
 #cap = cv2.VideoCapture(0)
-#if not cap.isOpened():
-#    print("Cannot open camera")
-#    exit()
+cap = cv2.VideoCapture("H:/Unity/Hololens Recordings/CapEllipseTesting/20240611_061811_HoloLens.mp4")
+if not cap.isOpened():
+    print("Cannot open camera")
+    exit()
 while True:
     # Capture frame-by-frame
-    #ret, img = cap.read()
-    img = cv2.imread("H:/Unity/BThesisSandbox/3D Model Cap/V2/20240312_155653.jpg")
+    ret, img = cap.read()
+    #img = cv2.imread("H:/Unity/BThesisSandbox/3D Model Cap/V2/20240312_155653.jpg")
+    #img = cv2.imread("H:/Unity/Hololens Recordings/CapEllipseTesting/20240611_062154_HoloLens.jpg")
 
-    img = cv2.resize(img, (750, 1000))
+    height = img.shape[0]
+    width = img.shape[1]
+
+    if height > width:
+        if height > 1000:
+            img = cv2.resize(img, (int(width * 1000 / height), 1000))
+    else:
+        if width > 1000:
+            img = cv2.resize(img, (1000, int(height * 1000 / width)))
+
+    #img = cv2.resize(img, (750, 1000))
 
     # if frame is read correctly ret is True
     #if not ret:
@@ -383,7 +395,7 @@ while True:
         cv2.ellipse(img, e.ellipse, color, 2)
 
         # Draw Color Text
-        #cv2.putText(img, colStr, e.centerPos, cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
+        cv2.putText(img, colStr, e.centerPos, cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
 
 
 
@@ -395,12 +407,12 @@ while True:
         perimater = cv2.arcLength(e.contour, True)
         inclusionRadius = inclusionCircle * (perimater / 100)
 
-        cv2.circle(img, e.centerPos, int(inclusionRadius), e.color, 1)
+        #cv2.circle(img, e.centerPos, int(inclusionRadius), e.color, 1)
 
         foundElectrodes = []
         for i2, e2 in enumerate(electrodes):
             if distance(e.centerPos, e2.centerPos) < inclusionRadius and e != e2:
-                cv2.line(img, e.centerPos, e2.centerPos, e2.color, 1)
+                #cv2.line(img, e.centerPos, e2.centerPos, e2.color, 1)
                 #testColorSequence += e2.colorStr
 
                 angle = math.atan2(e2.centerPos[1] - e.centerPos[1], e2.centerPos[0] - e.centerPos[0])
@@ -471,7 +483,7 @@ while True:
 
             if electrode.checkSequence(e.colorStr, testColorSequence) and len(testColorSequence) > 0.7 * len(electrode.sequence):
                 print(f"Electrode {electrode.name} has the sequence {testColorSequence}")
-                cv2.putText(img, electrode.name, e.centerPos, cv2.FONT_HERSHEY_SIMPLEX, 1, e.color, 2, cv2.LINE_AA)
+                #cv2.putText(img, electrode.name, e.centerPos, cv2.FONT_HERSHEY_SIMPLEX, 1, e.color, 2, cv2.LINE_AA)
 
         #strDistances.sort(key=lambda x: x["distance"])
         #bestMatch = strDistances[0]
