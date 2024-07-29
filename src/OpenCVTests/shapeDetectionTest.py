@@ -2,19 +2,85 @@ import cv2
 import numpy as np
 #from matplotlib import pyplot as plt
 
-cap = cv2.VideoCapture(0)
-if not cap.isOpened():
-    print("Cannot open camera")
-    exit()
+dp = 2
+rowsDivider = 10
+param1 = 60
+param2 = 25
+minRadius = 1
+maxRadius = 100
+
+def changeDP(value):
+    global dp
+    dp = value
+
+def changeRowsDivider(value):
+    global rowsDivider
+    rowsDivider = value
+
+def changeParam1(value):
+    global param1
+    param1 = value
+
+def changeParam2(value):
+    global param2
+    param2 = value
+
+def changeMinRadius(value):
+    global minRadius
+    minRadius = value
+
+def changeMaxRadius(value):
+    global maxRadius
+    maxRadius = value
+
+
+source_window = 'Source'
+cv2.namedWindow(source_window)
+# create trackbars
+cv2.createTrackbar('dp', source_window, dp, 10, changeDP)
+cv2.createTrackbar('rowsDivider', source_window, rowsDivider, 20, changeRowsDivider)
+cv2.createTrackbar('param1', source_window, param1, 100, changeParam1)
+cv2.createTrackbar('param2', source_window, param2, 100, changeParam2)
+cv2.createTrackbar('minRadius', source_window, minRadius, 100, changeMinRadius)
+cv2.createTrackbar('maxRadius', source_window, maxRadius, 100, changeMaxRadius)
+
+
+
+#cap = cv2.VideoCapture(0)
+#if not cap.isOpened():
+#    print("Cannot open camera")
+#    exit()
+#cap = cv2.VideoCapture("H:/Unity/Hololens Recordings/CapEllipseTesting/20240611_061811_HoloLens.mp4")
+#if not cap.isOpened():
+#    print("Cannot open camera")
+#    exit()
 while True:
     # Capture frame-by-frame
-    ret, img = cap.read()
+    #ret, img = cap.read()
 
     # if frame is read correctly ret is True
-    if not ret:
-        print("Can't receive frame (stream end?). Exiting ...")
-        break
+    #if not ret:
+    #    print("Can't receive frame (stream end?). Exiting ...")
+    #    break
     # Our operations on the frame come here
+
+    img = cv2.imread("H:/Unity/Hololens Recordings/CapEllipseTesting/20240611_062154_HoloLens_cut.jpg")
+
+    #ret, img = cap.read()
+
+    height = img.shape[0]
+    width = img.shape[1]
+
+    if height > width:
+        if height > 1000:
+            img = cv2.resize(img, (int(width * 1000 / height), 1000))
+    else:
+        if width > 1000:
+            img = cv2.resize(img, (1000, int(height * 1000 / width)))
+
+
+
+
 
     # converting image into grayscale image
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -24,13 +90,13 @@ while True:
     #cv2.imshow('blur', blur)
 
     _, threshold = cv2.threshold(blur, 140, 255, cv2.THRESH_BINARY)
-    cv2.imshow('threshold', threshold)
+    #cv2.imshow('threshold', threshold)
 
     #Remove small noise
     #kernel = np.ones((2,2),np.uint8)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     opening = cv2.morphologyEx(threshold, cv2.MORPH_OPEN, kernel, iterations=3)
-    cv2.imshow('opening', opening)
+    #cv2.imshow('opening', opening)
 
     dilate = cv2.dilate(opening, None, iterations=2)
     cv2.imshow('dilate', dilate)
@@ -88,8 +154,10 @@ while True:
         else:
             cv2.putText(img, 'circle', (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
     """
+
     rows = dilate.shape[0]
-    circles = cv2.HoughCircles(dilate, cv2.HOUGH_GRADIENT, 1, rows / 8, param1=50, param2=25, minRadius=1, maxRadius=100)
+    #circles = cv2.HoughCircles(dilate, cv2.HOUGH_GRADIENT, 2, rows / 10, param1=60, param2=25, minRadius=1, maxRadius=100)
+    circles = cv2.HoughCircles(dilate, cv2.HOUGH_GRADIENT, dp, rowsDivider, param1=param1, param2=param2, minRadius=minRadius, maxRadius=maxRadius)
 
     if circles is not None:
         circles = np.uint16(np.around(circles))
@@ -110,11 +178,12 @@ while True:
         peri = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.04 * peri, True)
         area = cv2.contourArea(c)
-        if len(approx) > 5 and area > 100 and area < 4000:
+        if len(approx) > 5 and area > 100 and area < 6000:
             ((x, y), r) = cv2.minEnclosingCircle(c)
-            cv2.circle(img, (int(x), int(y)), int(r), (36, 255, 12), 2)
+            #cv2.circle(img, (int(x), int(y)), int(r), (36, 255, 12), 2)
 
-    ref = cv2.imread('ref.png', cv2.IMREAD_GRAYSCALE)
+    r_CPZ = cv2.imread('ref3.png', cv2.IMREAD_GRAYSCALE)
+    r_CCP2H = cv2.imread('ref_CCP2h.jpg', cv2.IMREAD_GRAYSCALE)
     #orb = cv2.ORB_create()
 
     #kp1, des1 = orb.detectAndCompute(gray,None)
@@ -132,49 +201,54 @@ while True:
 
     # Draw first 10 matches.
     #img3 = cv2.drawMatches(gray,kp1,ref,kp2,matches[:10],None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    #cv2.imshow('feature', img3)
 
 
-
+    references = {"CPZ": r_CPZ, "CCP2H": r_CCP2H}
 
 
     """
     # Initiate SIFT detector
     sift = cv2.SIFT_create()
-    # find the keypoints and descriptors with SIFT
-    kp1, des1 = sift.detectAndCompute(ref,None)
-    kp2, des2 = sift.detectAndCompute(gray,None)
-    FLANN_INDEX_KDTREE = 1
-    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-    search_params = dict(checks = 50)
-    flann = cv2.FlannBasedMatcher(index_params, search_params)
-    matches = flann.knnMatch(des1,des2,k=2)
 
-    # store all the good matches as per Lowe's ratio test.
-    good = []
-    for m,n in matches:
-        if m.distance < 0.7*n.distance:
-            good.append(m)
+    for i, eName in enumerate(references):
+        ref = references[eName]
+        # find the keypoints and descriptors with SIFT
+        kp1, des1 = sift.detectAndCompute(ref,None)
+        kp2, des2 = sift.detectAndCompute(gray,None)
+        FLANN_INDEX_KDTREE = 1
+        index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+        search_params = dict(checks = 50)
+        flann = cv2.FlannBasedMatcher(index_params, search_params)
+        matches = flann.knnMatch(des1,des2,k=2)
 
-    if len(good)>10:
-        src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
-        dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
-        M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
-        matchesMask = mask.ravel().tolist()
-        h,w = ref.shape
-        pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
-        if M is not None:
-            dst = cv2.perspectiveTransform(pts,M)
-            gray = cv2.polylines(gray,[np.int32(dst)],True,255,3, cv2.LINE_AA)
-    else:
-        print( "Not enough matches are found - {}/{}".format(len(good), 10) )
-        matchesMask = None
+        # store all the good matches as per Lowe's ratio test.
+        good = []
+        for m,n in matches:
+            if m.distance < 0.7*n.distance:
+                good.append(m)
 
-    draw_params = dict(matchColor = (0,255,0), # draw matches in green color
-                singlePointColor = None,
-                matchesMask = matchesMask, # draw only inliers
-                flags = 2)
-    img3 = cv2.drawMatches(ref,kp1,gray,kp2,good,None,**draw_params)
-    cv2.imshow('feature', img3)
+        if len(good)>10:
+            src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
+            dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
+            M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
+            matchesMask = mask.ravel().tolist()
+            h,w = ref.shape
+            pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
+            if M is not None:
+                dst = cv2.perspectiveTransform(pts,M)
+                gray = cv2.polylines(gray,[np.int32(dst)],True,255,3, cv2.LINE_AA)
+        else:
+            print( "Not enough matches are found - {}/{}".format(len(good), 10) )
+            matchesMask = None
+
+        draw_params = dict(matchColor = (0,255,0), # draw matches in green color
+                    singlePointColor = None,
+                    matchesMask = matchesMask, # draw only inliers
+                    flags = 2)
+        img3 = cv2.drawMatches(ref,kp1,gray,kp2,good,None,**draw_params)
+        cv2.imshow('feature', img3)
+    #cv2.imwrite('feature.png', img3)
     """
 
     # Display the resulting frame
@@ -184,6 +258,6 @@ while True:
 
 
 # When everything done, release the capture
-cap.release()
+#cap.release()
 cv2.destroyAllWindows()
 
