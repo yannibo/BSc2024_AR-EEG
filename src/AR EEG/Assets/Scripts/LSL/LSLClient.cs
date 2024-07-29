@@ -8,11 +8,10 @@ using System.Threading.Tasks;
 using UnityEngine;
 
 /**
+ * This class receives LSL Data from the companion script an a separate PC. 
  * 
- * 
+ * It was copied from the following file in the LSLHoloBridge Project.
  * https://gitlab.csl.uni-bremen.de/fkroll/LSLHoloBridge/-/blob/master/holo_lsl/Assets/Scripts/Network/ConnectionManager.cs
- * 
- * 
  */
 
 public class LSLClient : MonoBehaviour {

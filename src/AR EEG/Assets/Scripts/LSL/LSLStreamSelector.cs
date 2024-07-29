@@ -4,8 +4,13 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /**
+ * Was before:
  * Logic behind the LSL Stream Selector, which displays all discovered streams on a ui 
  * and lets the user select one.
+ * 
+ * Now:
+ * Doesn't display available streams because of the incompatability of LSL and ARM64.
+ * Is now used to input an IP adress and connect to that directly. (With the Compainoon Script an a PC)
  */
 public class LSLStreamSelector : MonoBehaviour {
 

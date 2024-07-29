@@ -7,6 +7,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Windows.WebCam;
 
+/**
+ * First tests with PhotoCapture and Electrode detection with the ICP algorithm and the detection of electrodes from the received camera frame
+ */
 public class CameraTest : MonoBehaviour
 {
 
@@ -53,15 +56,6 @@ public class CameraTest : MonoBehaviour
             }
         }
 
-        /*if (electrodeInitializer.electrodes != null && cameraPoints != null) {
-            List<Vector3> electrodePositionsVirtual = FindElectrodesVirtual();
-
-            Tuple<Vector3[], double> result = ICP.TestICP(cameraPoints, electrodePositionsVirtual.ToArray());
-            foreach (Vector3 pos in result.Item1) {
-                GUI.Label(new Rect(pos.x, pos.y, 100, 100), "result");
-            }
-        }*/
-
         if (electrodeInitializer.electrodes != null && cameraPoints != null) {
             List<Vector3> electrodePositionsVirtual = FindElectrodesVirtual();
 
@@ -83,7 +77,10 @@ public class CameraTest : MonoBehaviour
         }
     }
 
-
+    /**
+     * Stuff to take images from the hololens camera
+     * Take a look at ArucoManager.cs for better documentation on essentially the same stuff
+     */
 
     private PhotoCapture photoCaptureObject = null;
 
@@ -129,6 +126,10 @@ public class CameraTest : MonoBehaviour
             yield return new WaitForSeconds(.1f);
         }
     }
+
+    /**
+     * Feeds the camera frame into OpenCV to detect electrodes and then run the ICP algorithm to try to assign electrodes their labels.
+     */
 
     private void onCapturedPhotoToMemoryCallback(PhotoCapture.PhotoCaptureResult result, PhotoCaptureFrame photoCaptureFrame) {
         if (result.success) {
@@ -214,6 +215,10 @@ public class CameraTest : MonoBehaviour
 
         return c;
     }
+
+    /**
+     * Methods that were used to get screen space coordinates of the electrodes in the scene for the ICP algorithm.
+     */
 
     List<Vector3> FindElectrodesVirtual() {
         List<Vector3> electrodePositions = new List<Vector3>();

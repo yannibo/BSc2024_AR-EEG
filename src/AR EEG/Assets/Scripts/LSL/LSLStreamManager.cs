@@ -8,6 +8,8 @@ using System;
  * Interface for Classes that want to receive LSL Stream Data
  * Currently only contains a method, which is being called with new Data
  * 
+ * Not used anymore, because it used the LSL DLL, which is incompatible with ARM64.
+ * 
  */
 public interface LSLStreamReceiver {
     void updateData(float data);

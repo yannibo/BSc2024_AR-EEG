@@ -38,6 +38,13 @@ public class LSLStreamInfoDisplay : MonoBehaviour {
     // Update is called once per frame
     void Update()
     {
+
+        /**
+         * Initially this was used for the LSL Nuget Package, but this doesn't work on the Hololens, because there is no LSL DLL for Arm64.
+         * I still left this code in here, in case someone wants to try it again. The uncommented code is for the approach with the LSLHoloBridge project
+         * https://gitlab.csl.uni-bremen.de/fkroll/LSLHoloBridge
+         */
+
         // Set the respective values from streamInfo to the Text Objects
         /*if (LSLStreamManager.instance != null) {
             streamNameText.SetText(LSLStreamManager.instance.streamInfo.name());

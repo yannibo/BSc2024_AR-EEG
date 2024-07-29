@@ -4,6 +4,11 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
+/**
+ * A class that display stream information and was used in a list, which showed all available LSL Streams. 
+ * Not used anymore, because of the incompatibility of LSL and ARM64.
+ */
+
 public class LSLStreamItem : MonoBehaviour
 {
 

@@ -5,10 +5,10 @@ using System;
 using UnityEngine;
 
 /**
+ * This class handles time synchronisation with the companion PC for the LSL data.
  * 
- * 
+ * It was copied from the following file in the LSLHoloBridge Project.
  * https://gitlab.csl.uni-bremen.de/fkroll/LSLHoloBridge/-/blob/master/holo_lsl/Assets/Scripts/Network/NTPSync.cs
- * 
  */
 
 public class NtpSync : MonoBehaviour {
