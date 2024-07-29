@@ -1,14 +1,14 @@
-# **BSc-Thesis:** On the simulation of GIT-Templates for BSc-Theses
-**Author:** *Benedikt Ehinger*
+# **BSc-Thesis:** Augmented Reality to Improve EEG Cap Preparation
+**Author:** *Yannik Bocksch*
 
-**Supervisor(s):** *Supervisor 1*, *Supervisor 2*
+**Supervisor(s):** *Benedikt Ehinger*, *Vladimir Mikheev*
 
 **Year:** *2024*
 
 ## Project Description
 This project is an application for the Hololens 2 that can be used to visualize data from an EEG cap in the operator’s view. It aims at helping the operator prepare an EEG cap on a patient’s head to achieve high-quality measurements.
 
-The major goal is to implement a tool for the Microsoft HoloLens, which receives the measured impedance values of the electrodes and visualizes them for the operator preparing the cap.
+The major goal is to implement a tool for the Microsoft HoloLens, which receives the measured impedance values of the electrodes and visualizes them for the operator preparing the cap. The operator can see impedance values as rings arounf each electrode, which removes the need to look at a separate device.
 
 
 ## Zotero Library Path

@@ -6,11 +6,14 @@ import time
 import Levenshtein as lev
 import matplotlib.pyplot as plt
 
-from scipy.spatial import distance_matrix
+#from scipy.spatial import distance_matrix
 #from matplotlib import pyplot as plt
 
+"""
+This is the latest version of the detection amethod of electrodes from a camera image.
+"""
 
-# global vars
+# Some variables that can be adjusted using the UI of OpenCV when running this script
 minArea = 200
 ellipseRatioThreshold = 2.4
 thresh = 100
@@ -79,7 +82,7 @@ cv2.createTrackbar('colorYGThresh:', source_window, colorYGThresh, 360, changeCo
 #cv2.createTrackbar('matchNumNeighbors:', source_window, matchNumNeighbors, 10, changeMatchNumNeighbors)
 
 
-
+## Open a camera stream or a video file
 #cap = cv2.VideoCapture(0)
 cap = cv2.VideoCapture("H:/Unity/Hololens Recordings/CapEllipseTesting/20240611_061811_HoloLens.mp4")
 if not cap.isOpened():
@@ -88,9 +91,17 @@ if not cap.isOpened():
 while True:
     # Capture frame-by-frame
     ret, img = cap.read()
+
+    ## if frame is read correctly ret is True
+    #if not ret:
+    #    print("Can't receive frame (stream end?). Exiting ...")
+    #    break
+
+    ## Or instead of Videos, this can also take images
     #img = cv2.imread("H:/Unity/BThesisSandbox/3D Model Cap/V2/20240312_155523.jpg")
     #img = cv2.imread("H:/Unity/Hololens Recordings/CapEllipseTesting/20240611_062154_HoloLens_cut.jpg")
 
+    ## Adjust the size of the image to reduce processing needs and so that the visualizations fit on the screen
     height = img.shape[0]
     width = img.shape[1]
 
@@ -104,34 +115,32 @@ while True:
             img = cv2.resize(img, (maxsize, int(height * maxsize / width)))
 
 
-    #img = cv2.resize(img, (750, 1000))
 
-    # if frame is read correctly ret is True
-    #if not ret:
-    #    print("Can't receive frame (stream end?). Exiting ...")
-    #    break
-    # Our operations on the frame come here
-
-    # converting image into grayscale image
+    ## converting image into grayscale image
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     #cv2.imshow('gray', gray)
+
+    ## convert image into a HSV version for color detection later
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
+    ## Blur the image
     blur = cv2.medianBlur(gray, 11)
     #cv2.imshow('blur', blur)
 
+    ## Apply the threshold to the blurred image. Threshold value can be modified in the UI
     _, threshold = cv2.threshold(blur, thresh, 255, cv2.THRESH_BINARY)
     #cv2.imshow('threshold', threshold)
 
-    #Remove small noise
-    #kernel = np.ones((2,2),np.uint8)
+    ## Remove small noise by using an "opening" operation of OpenCV
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     opening = cv2.morphologyEx(threshold, cv2.MORPH_OPEN, kernel, iterations=3)
     #cv2.imshow('opening', opening)
 
+    ## Dilate the image to counter the shrinking by the opening operation
     dilate = cv2.dilate(opening, None, iterations=2)
     cv2.imshow('dilate', dilate)
 
+    ## This lets you save the images to disk by pressing 's'
     if cv2.waitKey(1) == ord('s'):
         cv2.imwrite("original.jpg", img)
         cv2.imwrite("gray.jpg", gray)
@@ -140,6 +149,7 @@ while True:
         cv2.imwrite("opening.jpg", opening)
         cv2.imwrite("dilate.jpg", dilate)
 
+    ## This class is used to store the information of each detected electrode
     class ElectrodeContour:
         def __init__(self, ellipse, contour, centerPos, color, colorStr):
             self.ellipse = ellipse
@@ -149,34 +159,41 @@ while True:
             self.colorStr = colorStr
             self.hemispherePos = None
 
+    ## Apply the Canny edge detection to the dilated image and the contour detection to the edges
     canny_output = cv2.Canny(dilate, 100, 100 * 2)
     contours, _ = cv2.findContours(canny_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Find the rotated rectangles and ellipses for each contour
+    ## Find the rotated rectangles and ellipses for each contour
     minEllipse = [None]*len(contours)
     for i, c in enumerate(contours):
         if c.shape[0] > 5:
             minEllipse[i] = cv2.fitEllipse(c)
 
+    ## Initiate the total mask used for debugging the color masks of the electrodes in the color detection step
     totalMask = np.zeros(img.shape, img.dtype)
 
+    ## Method used to calculate the distance between two points
     def distance(p1, p2):
         return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
 
-    # Filter Contours
+    ## Filter Contours
     electrodes: list[ElectrodeContour] = []
     for i, c in enumerate(contours):
+        ## Filter by min and max area
         area = cv2.contourArea(c)
         if area < minArea or area > maxArea:
             continue
 
+        ## Filter by number of points in the detected shape
         if c.shape[0] <= 5:
             continue
 
+        ## Filter by ellipse's moment of inertia
         sizeRatio = minEllipse[i][1][0] / minEllipse[i][1][1]
         if sizeRatio < (1 / ellipseRatioThreshold) or sizeRatio > ellipseRatioThreshold:
             continue
 
+        ## Filter out duplicates
         nearFound = False
         for e in electrodes:
             if distance(e.centerPos, minEllipse[i][0]) < 20:
@@ -188,33 +205,33 @@ while True:
             electrodes.append(ElectrodeContour(minEllipse[i], c, centerPos, (0, 255, 255), "X"))
 
 
-    # Calculate Colors for each electrode
+    ## Calculate Colors for each electrode
     for i, e in enumerate(electrodes):
         area = cv2.contourArea(e.contour)
 
+        ## create mask for color detection by drawing the filled contour of each detected ellipse onto a black image
         mask = np.zeros(dilate.shape, np.uint8)
         cv2.drawContours(mask, [e.contour], -1, 255, cv2.FILLED)
 
         radius = max(e.ellipse[1]) / 2
 
+        ## Erode the mask to remove a bit of the outer edge of the mask
         element = cv2.getStructuringElement(cv2.MORPH_ERODE, (int(radius / 10) + 1, int(radius / 10) + 1), (int(radius / 10), int(radius / 10)))
         mask = cv2.erode(mask, element)
 
-        #element = cv2.getStructuringElement(cv2.MORPH_ERODE, (2 * int(area/erodeDivider) + 1, 2 * int(area/erodeDivider) + 1), (int(area/erodeDivider), int(area/erodeDivider)))
-        #mask = cv2.erode(mask, element)
-
+        ## Erode the mask to remove the core of the electrode, which is always gray
         element2 = cv2.getStructuringElement(cv2.MORPH_ERODE, (2 * int(area/erodeDivider) + 1, 2 * int(area/erodeDivider) + 1), (int(area/erodeDivider), int(area/erodeDivider)))
         maskSmall = cv2.erode(mask, element2)
         mask = cv2.bitwise_xor(mask, maskSmall)
 
+        ## Add this mask to the total mask image
         totalMask = cv2.bitwise_or(totalMask, cv2.bitwise_and(img, img, mask=mask))
 
-        #cv2.imshow("maskSmall", maskSmall)
-        #cv2.imshow("masked", cv2.bitwise_and(img, img, mask=mask))
-
+        ## Calculate the mean color of the electrode using the mask
         mean = cv2.mean(hsv, mask)
         hue = mean[0] * 2
 
+        ## Determine the color of the electrode based on the hue value and some color thresholds
         colStr = ""
         if hue > 0 and hue < colorYGThresh:
             colStr = "Y"
@@ -229,22 +246,24 @@ while True:
 
         #colStr += ": " + str(int(hue))
 
+        ## calculate the RGB color value for the electrode
         colImg = np.uint8([[[mean[0], 255, 255]]])
         colBGR = cv2.cvtColor(colImg, cv2.COLOR_HSV2BGR)
 
         color = (int(colBGR[0][0][0]), int(colBGR[0][0][1]), int(colBGR[0][0][2]), 0.0)
         electrodes[i].color = color
 
-        # Draw Ellipsis
+        ## Draw the electrode as an ellipse
         cv2.ellipse(img, e.ellipse, color, 2)
 
-        # Draw Color Text
+        ## Draw text containing the color of the electrode near it
         #cv2.putText(img, colStr, e.centerPos, cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
 
-        # Draw Index
+        ## Draw index of electrode
         #cv2.putText(img, str(i), e.centerPos, cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
 
 
+    ## Method used to identify if a point is inside of an ellipse. It does not work. Don't ask why
     def pointInEllipse(point, ellipse):
         global img
 
@@ -261,10 +280,6 @@ while True:
         # Divide dimensions by 2 to get the "radius"
         a, b = a / 2, b / 2
 
-        """ if a > b:
-            a, b = b, a
-            theta += math.radians(90) """
-
         cos = math.cos(-theta)
         sin = math.sin(-theta)
 
@@ -276,15 +291,6 @@ while True:
         x = x * cos - y * sin
         y = x * sin + y * cos
 
-        """ inEllipse = (x ** 2) / (a ** 2) + (y ** 2) / (b ** 2) <= 1
-
-        cv2.ellipse(img, [[100, 100], [a * 2, b * 2], 0], (255, 255, 255), 1)
-
-        if inEllipse:
-            cv2.circle(img, (int(x + 100), int(y + 100)), 5, (255, 255, 255), 5)
-        else:
-            cv2.circle(img, (int(x + 100), int(y + 100)), 5, (0, 0, 0), 5) """
-
         #return (((x - h) * cos + (y - k) * sin) ** 2) / (a**2) + (((x - h) * sin - (y - k) * cos) ** 2) / (b**2) <= 1
         #return ((x - h) ** 2) / (a**2) + ((y - k) ** 2) / (b**2) <= 1
 
@@ -293,7 +299,7 @@ while True:
 
 
 
-    # Project 2D coordinates to 3D hemisphere
+    ## Method used to project electrode position onto a hemisphere
     def calculateHemispherePoints(electrodes, radius=4):
         points = np.array([(e.centerPos[0], -e.centerPos[1]) for e in electrodes])
 
@@ -308,8 +314,10 @@ while True:
             nz = math.sqrt(max(0, radius**2 - nx**2 - ny**2))
             electrodes[i].hemispherePos = (nx, ny, nz)
 
+    ## Calculate the hemisphere positions for all electrodes
     calculateHemispherePoints(electrodes)
 
+    ## Data type used to feed detected electrodes into the iterative algorithm appended to this file
     class DetectedElectrodeAlgo:
         def __init__(self, detectedColor, detectedSequence, distToFace, neighborIndexes, position):
             self.detectedColor = detectedColor
@@ -323,16 +331,18 @@ while True:
     algoElectrodes = []
     czIndex = -1
 
-    # Get Color Sequence for each electrode
+    ## Determine neighbors and color sequence for all electrodes
     #for i, e in enumerate([electrodes[int(len(electrodes) / 2)]]):
     for i, e in enumerate(electrodes):
     #with electrodes[int(len(electrodes) / 2)] as e:
         #area = cv2.contourArea(e.contour)
         #inclusionRadius = inclusionCircle * (area / 1000)
 
+        ## Calculating the inclusion radius based on the perimeter of the ellipse
         perimater = cv2.arcLength(e.contour, True)
         inclusionRadius = inclusionCircle * (perimater / 100)
 
+        ## Draw the inclusion circle for one specific electrode
         if i == 37:
             cv2.circle(img, e.centerPos, int(inclusionRadius), e.color, 3)
 
@@ -344,6 +354,7 @@ while True:
             b = b * ((inclusionCircle + 100) / 40)
             a = a * ((inclusionCircle + 100) / 30)
 
+        ## Calculate the bigger ellipse as the inclusion circle
         biggerEllipse = (e.ellipse[0], (a, b), e.ellipse[2])
 
 
@@ -351,7 +362,7 @@ while True:
         #if i == 27:
         #    cv2.ellipse(img, biggerEllipse, e.color, 1)
 
-        # draw random 100 points
+        ## Draw 100 points at random locations to test the pointInEllipse method
         """ for i in range(1000):
             x = np.random.randint(0, img.shape[1])
             y = np.random.randint(0, img.shape[0])
@@ -360,62 +371,39 @@ while True:
             else:
                 cv2.circle(img, (x, y), 5, (0, 0, 0), 5) """
 
-
-        """ distances = []
-        for i2, e2 in enumerate(electrodes):
-            if e != e2:
-                hemiDistance = np.linalg.norm(np.array(e.hemispherePos) - np.array(e2.hemispherePos))
-                distances.append({"distance": hemiDistance, "eIndex": i2})
-
-        distances.sort(key=lambda x: x["distance"]) """
-
-
         foundElectrodes = []
-        """ for d in distances[:8]:
-            e2 = electrodes[d["eIndex"]]
-            cv2.line(img, e.centerPos, e2.centerPos, e2.color, 1)
-            angle = math.atan2(e2.centerPos[1] - e.centerPos[1], e2.centerPos[0] - e.centerPos[0])
-            foundElectrodes.append({"color": e2.colorStr, "distance": distance(e.centerPos, e2.centerPos), "angle": angle, "index": d["eIndex"]}) """
-
-
         for i2, e2 in enumerate(electrodes):
-            if distance(e.centerPos, e2.centerPos) < inclusionRadius and e != e2:
+            #if distance(e.centerPos, e2.centerPos) < inclusionRadius and e != e2:
             #if pointInEllipse(e2.centerPos, biggerEllipse) and e != e2:
-            #if e != e2 and pointInEllipse(e2.centerPos, e.ellipse):
 
-            #hemiDistance = np.linalg.norm(np.array(e.hemispherePos) - np.array(e2.hemispherePos))
-            #if hemiDistance < (inclusionCircle / 40) and e != e2:
+            ## Determine neighbors based on their hemisphere position and distance
+            hemiDistance = np.linalg.norm(np.array(e.hemispherePos) - np.array(e2.hemispherePos))
+            if hemiDistance < (inclusionCircle / 40) and e != e2:
                 if i == 37:
                     cv2.line(img, e.centerPos, e2.centerPos, e2.color, 2)
-                #testColorSequence += e2.colorStr
 
                 angle = math.atan2(e2.centerPos[1] - e.centerPos[1], e2.centerPos[0] - e.centerPos[0])
-                #cv2.putText(img, str(int(angle * 100)), e.centerPos, cv2.FONT_HERSHEY_SIMPLEX, 1, e.color, 2, cv2.LINE_AA)
-
                 foundElectrodes.append({"color": e2.colorStr, "distance": distance(e.centerPos, e2.centerPos), "angle": angle, "index": i2})
 
+        ## Costruct the color sequence based on the neighbors
         testColorSequence = ""
 
         foundElectrodes.sort(key=lambda x: x["angle"])
         for e2 in foundElectrodes:
             testColorSequence += e2["color"]
 
-        #if "X" not in testColorSequence and "P" not in testColorSequence:
-        #    cv2.putText(img, "(CZ)", e.centerPos, cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
-
-        #print(testColorSequence)
         #cv2.putText(img, testColorSequence, e.centerPos, cv2.FONT_HERSHEY_SIMPLEX, 1, e.color, 2, cv2.LINE_AA)
 
-        #DetectedElectrode("P", "XGGXGXG", -1),
-
+        ## Calculate the distance to "the face" (a point on the left of the screen)
         facePos = (0, int(img.shape[0] / 2))
         cv2.circle(img, facePos, 5, (255, 255, 255), 5)
         distToFace = distance(e.centerPos, facePos)
 
+        ## Add detected electrode to debug output used for other files and the list of detected electrodes for the iterative algorithm at the bottom of this file
         output += f"DetectedElectrode(\"{e.colorStr}\", \"{testColorSequence}\", " + str(distToFace) + ", [" + ', '.join([str(x["index"]) for x in foundElectrodes]) + "], (" + str(e.centerPos[0]) + ", " + str(-e.centerPos[1]) + "), -1),\n"
         algoElectrodes.append(DetectedElectrodeAlgo(e.colorStr, testColorSequence, distToFace, [x["index"] for x in foundElectrodes], (e.centerPos[0], -e.centerPos[1])))
 
-
+        ## Class used to contain information of the pre-defined reference electrodes
         class Electrode:
             def __init__(self, name, color, sequence):
                 self.name = name
@@ -425,19 +413,18 @@ while True:
             def checkSequence(self, color, testSequence):
                 testStr = self.sequence + self.sequence
                 return testSequence in testStr # and color == self.color
-                #print(f"Checking {self.sequence} with {testSequence}: {lev.distance(testStr, testSequence) / len(testSequence)}")
                 #return (lev.distance(testStr, testSequence) / len(testSequence) < levensteinThreshold) and color == self.color
 
-                levensteinDistance = 0
-                for i in range(len(testSequence)):
-                    if testSequence[i] != self.sequence[i]:
-                        levensteinDistance += 1
+                #levensteinDistance = 0
+                #for i in range(len(testSequence)):
+                #    if testSequence[i] != self.sequence[i]:
+                #        levensteinDistance += 1
+                #
+                #return levensteinDistance / len(self.sequence) < levensteinThreshold and color == self.color
 
-                return levensteinDistance / len(self.sequence) < levensteinThreshold and color == self.color
 
-
+        ## List of pre-defined electrodes
         eDefs = [
-
             Electrode("C1", "G", "PYPYPXPX"),
             Electrode("CZ", "P", "GYGYGYGY"),
             Electrode("CP1", "P", "GYGYGXGX"),
@@ -446,6 +433,7 @@ while True:
             Electrode("F2", "G", "PXPGXPY"),
         ]
 
+        ## Method that concatenates a reference color string to itself and calls the levenshtein distance for each possible rotation of the string. Returns the minimum distance
         def circularLevenshtein(a, b):
             minDistance = float("inf")
             concatenated = a + a
@@ -458,6 +446,7 @@ while True:
 
             return minDistance
 
+        ## Method that checks a test color string against all reference electrodes of the same color and returns the best match
         def checkTestColorSequence(eColor, testColorSequence, eDefs):
             distances = []
             for electrode in eDefs:
@@ -470,12 +459,7 @@ while True:
             distances.sort(key=lambda x: x["distance"])
             return distances[0] if len(distances) > 0 else None
 
-
-
-
-
-
-
+        ## Check the test color sequence against all reference electrodes and store the best match
         bestEDef = checkTestColorSequence(e.colorStr, testColorSequence, eDefs)
         if bestEDef != None and len(testColorSequence) > 0 and bestEDef["distance"] <= levensteinThreshold:
             print(f"Electrode {bestEDef['name']} has the sequence {testColorSequence} with distance {bestEDef['distance']} to {bestEDef['sequence']}")
@@ -513,8 +497,11 @@ while True:
             #print(f"Electrode {bestMatch['name']} has the sequence {testColorSequence} with distance {bestMatch['distance']}")
             #cv2.putText(img, bestMatch["name"], e.centerPos, cv2.FONT_HERSHEY_SIMPLEX, 1, e.color, 2, cv2.LINE_AA)
 
+    ## Print the Debug output
     #print(output)
 
+
+    ## This is the iterative algorithm copied into this file for testing.
     def doTheAlgo(detElectrodes, czIndex):
         class DefinedElectrode:
             def __init__(self, name, color, distToFace, neighbors):
@@ -1080,15 +1067,17 @@ while True:
 
         return finalAssignments
 
+    ## If there is en electrode that could be CZ based on its colors, predefine it for the iterative algorithm as a starting point
     if czIndex == -1:
         czMatches = [x for x in algoElectrodes if "X" not in x.detectedSequence and "P" not in x.detectedSequence and len(x.detectedSequence) > 4]
         if len(czMatches) == 1:
             czIndex = algoElectrodes.index(czMatches[0])
 
+    ## Run the algorithm with the detected electrodes
     #if czIndex != -1:
     #    detectedElectrodes = doTheAlgo(algoElectrodes, czIndex)
 
-
+    ## If enough electrode could be identified, run a PNP algorithm to try to get the 3D positions of them
     if len(detectedElectrodes) >= 4:
         file = open("CA-106.nlr-clean.elc", "r")
         lines = file.readlines()
@@ -1141,10 +1130,11 @@ while True:
             #    cv2.circle(img, (int(p[0][0]), int(p[0][1])), 5, (255, 255, 255), 20)
 
 
-
+    ## Draw the detected electrodes
     cv2.imshow('totalMask', totalMask)
     cv2.imshow('shapes', img)
 
+    ## Show a matplotlib graph containing the hemisphere positions of the electrodes
     """
     if cv2.waitKey(1) == ord('g'):
         fig = plt.figure()
@@ -1182,6 +1172,7 @@ while True:
 
     """
 
+    ## Pause the loop and save the current frame
     if cv2.pollKey() == ord('p'):
         cv2.imwrite("paused.png", img)
         print("Waiting")
@@ -1190,14 +1181,7 @@ while True:
             pass
 
 
-    #cv2.imshow('Contours', drawing)
-
-
-
-
-
-
-    # Display the resulting frame
+    ## Display the resulting frame including the detected electrodes
     if cv2.waitKey(1) == ord('q'):
         break
 
@@ -1207,4 +1191,3 @@ while True:
 # When everything done, release the capture
 cap.release()
 cv2.destroyAllWindows()
-
