@@ -1,18 +1,15 @@
-using MathNet.Numerics.LinearAlgebra;
-using MathNet.Numerics.LinearAlgebra.Double;
 using MixedReality.Toolkit;
 using MixedReality.Toolkit.SpatialManipulation;
-using System.Collections.Generic;
-using Unity.XR.CoreUtils;
 using UnityEngine;
 
 /**
  * ElectrodeInitializer takes a Layout 3D file and adds all the electrodes according to their position in the world
+ * 
+ * Used earlier without automatic alignment and is kept as a backup
  */
-public class ElectrodeInitializer : MonoBehaviour {
 
-    // A reference to the ArucoManager to be able to get aruco positions
-    public ArucoManager arucoManager;
+/*
+public class ElectrodeInitializer : MonoBehaviour {
 
     // The Prefab of a single Electrode
     [SerializeField]
@@ -21,10 +18,6 @@ public class ElectrodeInitializer : MonoBehaviour {
     // The GameObject that marks the center of the Head / Cap
     [SerializeField]
     private Transform headCenter;
-
-    // The Transform that marks the origin of electrode positions
-    [SerializeField]
-    private Transform spawnPosition;
 
     // A reference to the reference mesh
     [SerializeField]
@@ -43,33 +36,12 @@ public class ElectrodeInitializer : MonoBehaviour {
     [SerializeField]
     private Transform manualAlignmentTransform;
 
-    // A reference to the Transform that handles the manual alignment offset
-    [SerializeField]
-    private Transform automaticAlignmentTransform;
-
-    // A Dictionary of all detected markers. Is used for calibration
-    private Dictionary<int, ArucoMarker> detectedMarkers = new Dictionary<int, ArucoMarker>();
-
-    // A list of test markers used in development of this application
-    [SerializeField]
-    public Transform[] testMarkers;
-
-    // bool that indicates, whether a calibration has been done and not reset
-    private bool isCalibrated = false;
-
-    // A bool that can be used in development to abort automatic alignment
-    public bool applyAutoAlignment = true;
-
-    /**
-     * Start Offsets of Hand Alignment
-     */
+    // Start Offsets of Hand Alignment
     private Vector3 initialPositionOffset;
     private Quaternion initialRotationOffset;
     private Vector3 initialScaleOffset;
 
-    /**
-     * Manual Alignment Offsets
-     */
+    // Manual Alignment Offsets
     Vector3 manualPositionOffset = new Vector3(0, 0, 0);
     Vector3 manualRotationOffset = new Vector3(0, 0, 0);
     Vector3 manualScaleOffset = new Vector3(1, 1, 1);
@@ -89,15 +61,19 @@ public class ElectrodeInitializer : MonoBehaviour {
         int i = 0;
         foreach (var pos in electrodePositions) {
             // Instantiate a new Instance of the prefab for each electrode
-            GameObject obj = Instantiate(electrodePrefab, spawnPosition, false);
+            GameObject obj = Instantiate(electrodePrefab, headCenter, false);
 
-            obj.transform.position = spawnPosition.position;
+            obj.transform.position = headCenter.position;
 
             // Apply a standard scale and the position of the electrode
             obj.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             obj.transform.localPosition += new Vector3((float)(-pos.y * 1.5), (float)(pos.z * 1.5), (float)(pos.x * 1.5));
-            //obj.transform.rotation = Quaternion.FromToRotation(obj.transform.up, obj.transform.position - headCenter.position);
+            
+            //obj.transform.localPosition += new Vector3((float)(-pos.y * 1.2), (float)(pos.z * 1.2), (float)(pos.x * 1.2));
+            //obj.transform.position += new Vector3((float)pos.y, (float)pos.z, (float)pos.x);
 
+            //obj.transform.position = transform.position.TransformPoint(new Vector3((float)(pos.y * 1.2), (float)(pos.z * 1.2), (float)(pos.x * 1.2)), transform.rotation, new Vector3(0.3f, 0.3f, 0.3f));
+            //obj.transform.position = transform.localPosition + new Vector3((float)(pos.y * 1.2), (float)(pos.z * 1.2), (float)(pos.x * 1.2));
 
             // Preform a Raycast in the direction of the head mesh for positioning the electrodes directly on the head mesh
             int layerMask = LayerMask.GetMask("Head");
@@ -113,13 +89,23 @@ public class ElectrodeInitializer : MonoBehaviour {
                 obj.transform.rotation = Quaternion.FromToRotation(obj.transform.up, obj.transform.position - center);
 
                 Vector3 posDiff = hit.point - obj.transform.position;
-                /*float distance = posDiff.magnitude;
+                float distance = posDiff.magnitude;
                 posDiff.Normalize();
-                posDiff = posDiff * (distance * 0.9f);*/
+                posDiff = posDiff * (distance * 0.9f);
 
                 obj.transform.position += posDiff;
-            }
+                //obj.transform.position = hit.point;
 
+
+
+                //Vector3 normal = new Vector3(
+                //    MapFloat(hit.normal.x, -1, 1, 180, 0),
+                //    MapFloat(hit.normal.y, -1, 1, 180, 0),
+                //    MapFloat(hit.normal.z, -1, 1, 180, 0)
+                //);
+
+                //obj.transform.localRotation = Quaternion.FromToRotation(obj.transform.up, hit.point - center);
+            }
 
             // Initialize the Electrode Script on the electrode GameObject
             ElectrodeDisplay electrodeDisplay = obj.GetComponent<ElectrodeDisplay>();
@@ -129,18 +115,14 @@ public class ElectrodeInitializer : MonoBehaviour {
         }
 
         SetHeadMeshVisible(false);
-
-        arucoManager.MarkerPositionUpdateEvent += this.markerPositionUpdated;
-#if UNITY_EDITOR
-        if (testMarkers.Length == 5) {
-            CalibrateAutomaticPose();
-        }
-#endif
     }
 
+    private float MapFloat(float value, float fromMin, float fromMax, float toMin, float toMax) {
+        float percent = (value - fromMin) / (fromMax - fromMin);
+        return (percent * (toMax - toMin)) + toMin;
+    }
 
     private void Update() {
-#if !UNITY_EDITOR
         // Hide Electrodes behind the head to limit confusion
         if (viewerCamera != null) {
             float centerDistance = Vector3.Distance(viewerCamera.transform.position, headCenter.position);
@@ -151,17 +133,37 @@ public class ElectrodeInitializer : MonoBehaviour {
         } else {
             viewerCamera = Camera.main;
         }
-#endif
 
         // Apply the manual offset
         manualAlignmentTransform.localPosition = manualPositionOffset;
         manualAlignmentTransform.localRotation = Quaternion.Euler(manualRotationOffset);
+        //manualAlignmentTransform.localScale = manualScaleOffset;
+
+        //manualAlignmentTransform.Rotate(manualRotationOffset, Space.Self);
+        //ScaleAround(manualAlignmentTransform.gameObject, headCenter.position, manualScaleOffset);
         ScaleAround(manualAlignmentTransform, headCenter, manualScaleOffset);
     }
-
+*/
     /**
-     * Scales a transform around a point.
+     * Scale Around Point Method
+     * https://discussions.unity.com/t/scaling-an-object-from-a-different-center/2508
      */
+    /*public void ScaleAround(GameObject target, Vector3 pivot, Vector3 newScale) {
+        Vector3 A = target.transform.localPosition;
+        Vector3 B = pivot;
+
+        Vector3 C = A - B; // diff from object pivot to desired pivot/origin
+
+        float RS = newScale.x / target.transform.localScale.x; // relataive scale factor
+
+        // calc final position post-scale
+        Vector3 FP = B + C * RS;
+
+        // finally, actually perform the scale/translation
+        target.transform.localScale = newScale;
+        target.transform.localPosition = FP;
+    }*/
+    /*
     public void ScaleAround(Transform target, Transform pivot, Vector3 scale) {
         Transform pivotParent = pivot.parent;
         Vector3 pivotPos = pivot.position;
@@ -171,306 +173,22 @@ public class ElectrodeInitializer : MonoBehaviour {
         pivot.parent = pivotParent;
     }
 
-    // Event handler for ArUco marker position updates
-    private void markerPositionUpdated(ArucoMarker marker) {
-        if (marker.id < 1 || marker.id > 5) return;
-
-        Debug.Log("Update Positions for " + marker.id);
-
-        if (!isCalibrated) {
-            if (detectedMarkers.ContainsKey(marker.id)) {
-                detectedMarkers[marker.id] = marker;
-            } else {
-                detectedMarkers.Add(marker.id, marker);
-            }
-        }
-    }
-
-    /**
-     * Method containing debug visualizations of the automatic alignment procedure.
-     */
-    private void OnDrawGizmos() {
-
-        Gizmos.color = Color.green;
-        Gizmos.DrawSphere(averagePos("AFZ", "FPZ"), .01f);
-        Gizmos.DrawSphere(averagePos("OI1H", "OI2H"), .01f);
-        Gizmos.DrawSphere(averagePos("C5", "T7"), .01f);
-        Gizmos.DrawSphere(averagePos("C6", "T8"), .01f);
-        Gizmos.DrawSphere(averagePos("CZ", "FCZ"), .01f);
-
-        ArucoMarker front, back, left, right, top;
-
-        front = new ArucoMarker(1, new Vector2Int(), new Vector2(), testMarkers[0].position, testMarkers[0].rotation);
-        back = new ArucoMarker(2, new Vector2Int(), new Vector2(), testMarkers[1].position, testMarkers[1].rotation);
-        left = new ArucoMarker(3, new Vector2Int(), new Vector2(), testMarkers[2].position, testMarkers[2].rotation);
-        right = new ArucoMarker(4, new Vector2Int(), new Vector2(), testMarkers[3].position, testMarkers[3].rotation);
-        top = new ArucoMarker(5, new Vector2Int(), new Vector2(), testMarkers[4].position, testMarkers[4].rotation);
-
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawSphere(averagePos(front.position, back.position), .01f);
-        Gizmos.color = Color.red;
-        Gizmos.DrawLine(front.position, back.position);
-        Gizmos.DrawLine(left.position, right.position);
-        Gizmos.DrawLine(top.position, averagePos(front.position, back.position));
-
-
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawSphere(front.position, .01f);
-        Gizmos.DrawSphere(back.position, .01f);
-        Gizmos.DrawSphere(left.position, .01f);
-        Gizmos.DrawSphere(right.position, .01f);
-        Gizmos.DrawSphere(top.position, .01f);
-
-
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawSphere(averagePos(averagePos("AFZ", "FPZ"), averagePos("OI1H", "OI2H")), .01f);
-        Gizmos.color = Color.red;
-        Gizmos.DrawLine(averagePos("AFZ", "FPZ"), averagePos("OI1H", "OI2H"));
-        Gizmos.DrawLine(averagePos("C5", "T7"), averagePos("C6", "T8"));
-        Gizmos.DrawLine(averagePos("CZ", "FCZ"), averagePos(averagePos("AFZ", "FPZ"), averagePos("OI1H", "OI2H")));
-
-        Vector3 isCenter = centerPos(averagePos("AFZ", "FPZ"), averagePos("OI1H", "OI2H"), averagePos("C5", "T7"), averagePos("C6", "T8"), averagePos("CZ", "FCZ"));
-        Vector3 shouldCenter = centerPos(front.position, back.position, left.position, right.position, top.position);
-
-        Vector3 isFrontOrigin = averagePos("AFZ", "FPZ") - isCenter;
-        Vector3 isBackOrigin = averagePos("OI1H", "OI2H") - isCenter;
-        Vector3 isLeftOrigin = averagePos("C5", "T7") - isCenter;
-        Vector3 isRightOrigin = averagePos("C6", "T8") - isCenter;
-        Vector3 isTopOrigin = averagePos("CZ", "FCZ") - isCenter;
-        Vector3 isMiddleOrigin = averagePos(isFrontOrigin, isBackOrigin);
-
-        Vector3 shouldFrontOrigin = front.position - shouldCenter;
-        Vector3 shouldBackOrigin = back.position - shouldCenter;
-        Vector3 shouldLeftOrigin = left.position - shouldCenter;
-        Vector3 shouldRightOrigin = right.position - shouldCenter;
-        Vector3 shouldTopOrigin = top.position - shouldCenter;
-        Vector3 shouldMiddleOrigin = averagePos(shouldFrontOrigin, shouldBackOrigin);
-
-        float frontBackScale = Vector3.Distance(shouldFrontOrigin, shouldBackOrigin) / Vector3.Distance(isFrontOrigin, isBackOrigin);
-        float topFrontBackScale = Vector3.Distance(shouldTopOrigin, shouldMiddleOrigin) / Vector3.Distance(isTopOrigin, isMiddleOrigin);
-        float leftRightScale = Vector3.Distance(shouldLeftOrigin, shouldRightOrigin) / Vector3.Distance(isLeftOrigin, isRightOrigin);
-
-        Vector3 scale = new Vector3(leftRightScale, topFrontBackScale, frontBackScale);
-
-        isFrontOrigin.Scale(scale);
-        isBackOrigin.Scale(scale);
-        isLeftOrigin.Scale(scale);
-        isRightOrigin.Scale(scale);
-        isTopOrigin.Scale(scale);
-
-        // Calculate Rotation
-        Gizmos.color = Color.magenta;
-        Gizmos.DrawLine(averagePos("C5", "T7"), averagePos("C6", "T8"));
-        Gizmos.DrawLine(averagePos("AFZ", "FPZ"), averagePos("OI1H", "OI2H"));
-
-        Quaternion rotation = calculateRotationSVD(
-            new Vector3[] { isFrontOrigin, isBackOrigin, isLeftOrigin, isRightOrigin, isTopOrigin}, 
-            new Vector3[] { shouldFrontOrigin, shouldBackOrigin, shouldLeftOrigin, shouldRightOrigin, shouldTopOrigin }
-        );
-
-
-        isFrontOrigin = rotation * isFrontOrigin;
-        isBackOrigin = rotation * isBackOrigin;
-        isLeftOrigin = rotation * isLeftOrigin;
-        isRightOrigin = rotation * isRightOrigin;
-        isTopOrigin = rotation * isTopOrigin;
-        isMiddleOrigin = rotation * isMiddleOrigin;
-
-
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawSphere(isFrontOrigin + (shouldCenter), .01f);
-        Gizmos.color = Color.blue;
-        Gizmos.DrawSphere(isBackOrigin + (shouldCenter), .01f);
-        Gizmos.DrawSphere(isLeftOrigin + (shouldCenter), .01f);
-        Gizmos.DrawSphere(isRightOrigin + (shouldCenter), .01f);
-
-        Gizmos.color = Color.gray;
-        Gizmos.DrawSphere(isTopOrigin + (shouldCenter), .01f);
-    }
-
-    /**
-     * Method that contains calculations for aligning the cap with the help of the aruco markers.
-     */
-    public void CalibrateAutomaticPose() {
-        ArucoMarker front, back, left, right, top;
-
-#if !UNITY_EDITOR
-        if (!detectedMarkers.TryGetValue(1, out front)) 
-            return;
-        if (!detectedMarkers.TryGetValue(2, out back))
-            return;
-        if (!detectedMarkers.TryGetValue(3, out left))
-            return;
-        if (!detectedMarkers.TryGetValue(4, out right))
-            return;
-        if (!detectedMarkers.TryGetValue(5, out top))
-            return;
-#else
-        // If test markers are given use them instead of detected ones. No need for camera while developing.
-        front = new ArucoMarker(1, new Vector2Int(), new Vector2(), testMarkers[0].position, testMarkers[0].rotation);
-        back = new ArucoMarker(2, new Vector2Int(), new Vector2(), testMarkers[1].position, testMarkers[1].rotation);
-        left = new ArucoMarker(3, new Vector2Int(), new Vector2(), testMarkers[2].position, testMarkers[2].rotation);
-        right = new ArucoMarker(4, new Vector2Int(), new Vector2(), testMarkers[3].position, testMarkers[3].rotation);
-        top = new ArucoMarker(5, new Vector2Int(), new Vector2(), testMarkers[4].position, testMarkers[4].rotation);
-#endif
-        Debug.Log("Calibrating Marker Positions");
-
-        // Translate to Origin
-        Vector3 isCenter = centerPos(averagePos("AFZ", "FPZ"), averagePos("OI1H", "OI2H"), averagePos("C5", "T7"), averagePos("C6", "T8"), averagePos("CZ", "FCZ"));
-        Vector3 shouldCenter = centerPos(front.position, back.position, left.position, right.position, top.position);
-
-        Vector3 isFrontOrigin = averagePos("AFZ", "FPZ") - isCenter;
-        Vector3 isBackOrigin = averagePos("OI1H", "OI2H") - isCenter;
-        Vector3 isLeftOrigin = averagePos("C5", "T7") - isCenter;
-        Vector3 isRightOrigin = averagePos("C6", "T8") - isCenter;
-        Vector3 isTopOrigin = averagePos("CZ", "FCZ") - isCenter;
-        Vector3 isMiddleOrigin = averagePos(isFrontOrigin, isBackOrigin);
-
-        Vector3 shouldFrontOrigin = front.position - shouldCenter;
-        Vector3 shouldBackOrigin = back.position - shouldCenter;
-        Vector3 shouldLeftOrigin = left.position - shouldCenter;
-        Vector3 shouldRightOrigin = right.position - shouldCenter;
-        Vector3 shouldTopOrigin = top.position - shouldCenter;
-        Vector3 shouldMiddleOrigin = averagePos(shouldFrontOrigin, shouldBackOrigin);
-
-        // Calculate the scale in all three axes
-        float frontBackScale = Vector3.Distance(shouldFrontOrigin, shouldBackOrigin) / Vector3.Distance(isFrontOrigin, isBackOrigin);
-        float topFrontBackScale = Vector3.Distance(shouldTopOrigin, shouldMiddleOrigin) / Vector3.Distance(isTopOrigin, isMiddleOrigin);
-        float leftRightScale = Vector3.Distance(shouldLeftOrigin, shouldRightOrigin) / Vector3.Distance(isLeftOrigin, isRightOrigin);
-
-        Vector3 scale = new Vector3(leftRightScale, topFrontBackScale, frontBackScale);
-
-        // Scale points for further calculations
-        isFrontOrigin.Scale(scale);
-        isBackOrigin.Scale(scale);
-        isLeftOrigin.Scale(scale);
-        isRightOrigin.Scale(scale);
-        isTopOrigin.Scale(scale);
-
-        // Calculate Rotation
-        Quaternion rotation = calculateRotationSVD(
-            new Vector3[] { isFrontOrigin, isBackOrigin, isLeftOrigin, isRightOrigin, isTopOrigin },
-            new Vector3[] { shouldFrontOrigin, shouldBackOrigin, shouldLeftOrigin, shouldRightOrigin, shouldTopOrigin }
-        );
-
-        if (!applyAutoAlignment)
-            return;
-
-        // Apply scale and rotation to alignment transform
-        automaticAlignmentTransform.localScale = scale;
-        automaticAlignmentTransform.rotation = rotation;
-
-        // Recalculate positions due to changed by size and rotation
-        isCenter = centerPos(averagePos("AFZ", "FPZ"), averagePos("OI1H", "OI2H"), averagePos("C5", "T7"), averagePos("C6", "T8"), averagePos("CZ", "FCZ"));
-        shouldCenter = centerPos(front.position, back.position, left.position, right.position, top.position);
-
-        // Apply position
-        automaticAlignmentTransform.position += shouldCenter - isCenter;
-
-        // Hide marker visualizations
-        arucoManager.SetArUcoVisible(false);
-    }
-
-    /**
-     * Method that resets automatic alignment
-     */
-    public void ResetAutomaticPose() {
-        automaticAlignmentTransform.localPosition = Vector3.zero;
-        automaticAlignmentTransform.localRotation = Quaternion.identity;
-        automaticAlignmentTransform.localScale = Vector3.one;
-
-        // Hide marker visualizations
-        arucoManager.SetArUcoVisible(true);
-    }
-
-    /**
-     * Method for performing a singular value decomposition used to calculate the rotation of the cap based on marker positions
-     */
-    public Quaternion calculateRotationSVD(Vector3[] isPoints, Vector3[] shouldPoints) {
-        Matrix<double> isMatrix = DenseMatrix.OfArray(new double[isPoints.Length, 3]);
-        Matrix<double> shouldMatrix = DenseMatrix.OfArray(new double[isPoints.Length, 3]);
-
-        for (int i = 0; i < isPoints.Length; i++) {
-            isMatrix[i, 0] = isPoints[i].x;
-            isMatrix[i, 1] = isPoints[i].y;
-            isMatrix[i, 2] = isPoints[i].z;
-
-            shouldMatrix[i, 0] = shouldPoints[i].x;
-            shouldMatrix[i, 1] = shouldPoints[i].y;
-            shouldMatrix[i, 2] = shouldPoints[i].z;
-
-        }
-
-        Matrix<double> H = isMatrix.Transpose() * shouldMatrix;
-        var svd = H.Svd(true);
-        Matrix<double> R = svd.U * svd.VT;
-
-        // Convert R to Quaternion
-        Matrix4x4 rotationMatrix = new Matrix4x4(
-            new Vector4((float)R[0, 0], (float)R[0, 1], (float)R[0, 2], 0),
-            new Vector4((float)R[1, 0], (float)R[1, 1], (float)R[1, 2], 0),
-            new Vector4((float)R[2, 0], (float)R[2, 1], (float)R[2, 2], 0),
-            new Vector4(0, 0, 0, 1)
-        );
-
-        return rotationMatrix.rotation;
-    }
-
-    /**
-     * Method that takes positions of two virtual electrodes and returns the position in between those.
-     */
-    public Vector3 averagePos(string a, string b) {
-        Vector3 aPos = Vector3.zero;
-        Vector3 bPos = Vector3.zero;
-
-        foreach(GameObject e in electrodes) {
-            ElectrodeDisplay electrodeDisplay = e.GetComponent<ElectrodeDisplay>();
-            if (electrodeDisplay.channelName == a) {
-                aPos = e.transform.position;
-            } else if (electrodeDisplay.channelName == b) {
-                bPos = e.transform.position;
-            }
-        }
-
-        return averagePos(aPos, bPos);
-    }
-
-    /**
-     * Method that returns the position in between of two points.
-     */
-    public Vector3 averagePos(Vector3 aPos, Vector3 bPos) {
-        return new Vector3((aPos.x + bPos.x) / 2, (aPos.y + bPos.y) / 2, (aPos.z + bPos.z) / 2);
-    }
-
-    public Vector3 centerPos(Vector3 vec1, Vector3 vec2, Vector3 vec3, Vector3 vec4, Vector3 vec5) { 
-        Vector3 center = vec1 + vec2 + vec3 + vec4 + vec5;
-        return center / 5;
-    }
-
-    /**
-     * Method to enable/disable the Object Manipulator
-     */
+    // Method to enable/disable the Object Manipulator
     public void SetManipulatorEnabled(bool enabled) {
         objectManipulator.enabled = enabled;
     }
 
-    /**
-     * Method to show/hide the reference mesh
-     */
+    // Method to show/hide the reference mesh
     public void SetHeadMeshVisible(bool enabled) {
         meshObject.SetActive(enabled);
     }
 
-    /**
-    * Method to set the Viewer Camera
-    */
+    // Method to set the Viewer Camera
     public void SetCamera(Camera camera) {
         viewerCamera = camera;
     }
 
-    /**
-     * Applies the Manual Alignment offset to the respective transform
-     */
+    // Applies the Manual Alignment offset to the respective transform
     public void SetManualOffset(Vector3 position, Vector3 rotation, Vector3 scale) {
         manualPositionOffset = position;
         manualRotationOffset = rotation;
@@ -616,9 +334,7 @@ public class ElectrodeInitializer : MonoBehaviour {
     };
 }
 
-/**
- * A Helper Class that contains the 3D information of the EEG Cap Layout
- */
+// A Helper Class that contains the 3D information of the EEG Cap Layout
 public class ElectrodeDefinition {
     public string name;
     public double x;
@@ -631,6 +347,6 @@ public class ElectrodeDefinition {
         this.y = y;
         this.z = z;
     }
-}
+}*/
 
 

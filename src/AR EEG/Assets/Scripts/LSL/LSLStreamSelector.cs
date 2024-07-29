@@ -111,7 +111,8 @@ public class LSLStreamSelector : MonoBehaviour {
         Debug.Log("Connecting to: " + ipAddress);
 
         lslClient._hostName = ipAddress;
-        lslClient.enabled = true;
+        lslClient.gameObject.SetActive(true);
+        lslClient.Connect();
 
         list.SetActive(false);
         infoDisplay.gameObject.SetActive(true);
@@ -123,7 +124,7 @@ public class LSLStreamSelector : MonoBehaviour {
      */
     void onDisconnectClick() {
         lslClient.StopStream();
-        lslClient.enabled = false;
+        //lslClient.gameObject.SetActive(false);
 
         list.SetActive(true);
         infoDisplay.gameObject.SetActive(false);

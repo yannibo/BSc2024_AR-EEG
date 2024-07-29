@@ -6,8 +6,8 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/SimpleQRAlignment.unity
-    guid: 3d0d9f6a1a2f0d046a027103946a8752
+    path: Assets/Scenes/ArucoAlignment.unity
+    guid: a8ba6fb11278cc24b9cc17d33dcf5d1b
   m_configObjects:
     com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: d67165f98b0acb94594d29a02002cbcc, type: 2}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: d2430b267ae3faf48b682c6eeea4097a, type: 2}

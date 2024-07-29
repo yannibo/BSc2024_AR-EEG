@@ -25,6 +25,7 @@ public class LSLStreamManagerNewClient : MonoBehaviour {
     // LSL Stream resolver handles discovery of LSL Streams
     private LSLClient client;
 
+    // A number storing the last samples per second
     public float samplesPerSecond;
 
     // A Map storing the indices of channels in the raw data by a channel name
@@ -98,6 +99,7 @@ public class LSLStreamManagerNewClient : MonoBehaviour {
     // A Map containing all registered Instances, which want to receive data from LSL
     private Dictionary<string, List<LSLStreamReceiver>> receivers = new Dictionary<string, List<LSLStreamReceiver>>();
 
+    // An Action that gets fired, if the LSL stream is ready
     public event Action streamReady;
 
     private void OnEnable() {
@@ -129,6 +131,7 @@ public class LSLStreamManagerNewClient : MonoBehaviour {
      */
     void Update() {
         if (client != null && !client._noConnection) {
+            // Channel is always EEG and is defined in the HoloLSLBridge.py script
             LSLClient.Package pkg = client.ReadChannel("EEG");
 
             if (pkg.Payload.Length > 0 && pkg.PkgType == LSLClient.FLOAT_TYPE && pkg.ChannelName.Equals("EEG")) {

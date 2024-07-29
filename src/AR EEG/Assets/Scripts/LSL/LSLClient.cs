@@ -88,17 +88,12 @@ public class LSLClient : MonoBehaviour {
     // Use this for initialization
     private void Start() {
         _ntpSync = GetComponent<NtpSync>();
-        foreach (var channelName in _expectedChannels) {
-            _channelBuffers.Add(channelName, new ConcurrentQueue<Package>());
-        }
-
-        _channelBuffers.Add(UNKOWN_CHANNEL, new ConcurrentQueue<Package>());
 
         _noConnection = true;
-        Connect();
+        //Connect();
     }
 
-    private async void Connect() {
+    public async void Connect() {
         try {
 #if NETFX_CORE || ENABLE_WINMD_SUPPORT
             _socket = new Windows.Networking.Sockets.StreamSocket();
@@ -122,6 +117,12 @@ public class LSLClient : MonoBehaviour {
         if (_listeningTask != null) {
             StopListening();
         }
+
+        foreach (var channelName in _expectedChannels) {
+            _channelBuffers.Add(channelName, new ConcurrentQueue<Package>());
+        }
+
+        _channelBuffers.Add(UNKOWN_CHANNEL, new ConcurrentQueue<Package>());
 
         _listeningTask = Task.Run(() => RunListening());
     }
