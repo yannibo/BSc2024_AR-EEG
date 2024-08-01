@@ -1,0 +1,6 @@
+opencv-python
+numpy
+matplotlib
+python-Levenshtein
+scikit-learn
+scipy
