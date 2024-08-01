@@ -1,2 +1,0 @@
-# BThesisCV Project
-
